@@ -16,6 +16,9 @@
 //#define vga_mode vga_mode_tft_800x480_50
 //#define vga_mode vga_mode_tft_400x240_50
 
+// Semaphore used to block code from proceeding unitl video is initialized
+static semaphore_t video_initted;
+
 void draw(scanvideo_scanline_buffer_t *buffer) {
     // PIXEL DRAWING CODE GOES HERE
 }
@@ -25,6 +28,8 @@ void core1_func() {
     scanvideo_setup(&vga_mode);
     // Turn on scanvideo code
     scanvideo_timing_enable(true);
+    // Release semaphore
+    sem_release(&video_initted);
 
     while (true) {
         // Generate scanline buffer
@@ -37,7 +42,15 @@ void core1_func() {
 }
 
 int main(void) {
+    // Initialize semaphore
+    sem_init(&video_initted, 0, 1);
     // Run code on core 1
     multicore_launch_core1(core1_func);
+    // Wait for video initialization to complete
+    sem_acquire_blocking(&video_initted);
+
+    while(true) {
+        // Run additional code/controls here
+    }
 }
 
