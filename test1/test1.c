@@ -20,28 +20,47 @@
 static semaphore_t video_initted;
 
 void draw(scanvideo_scanline_buffer_t *buffer) {
+
+    uint16_t width = vga_mode.width / 3;
+
     // Get pointer to buffer data
     uint16_t *p = (uint16_t *) buffer->data;
-    // Set token (COMPOSABLE_COLOR_RUN = draw all pixels up to a certain length)
+    // Data consists of 32-bit words telling scanvideo what to draw
+    // First, set token determining action/structure of word
+    // COMPOSABLE_COLOR_RUN = draw line of pixels w/ same color
     *p++ = COMPOSABLE_COLOR_RUN;
-    // Set color for word (red)
+    // 16-bit color value (5-bit RGB color)
+    // Set color to red
     *p++ = PICO_SCANVIDEO_PIXEL_FROM_RGB5(0x1f,0,0);
     // Set number of pixels to draw (subtract 3 from desired number)
-    *p++ = vga_mode.width - 3;
+    *p++ = width - 3;
+
+    *p++ = COMPOSABLE_COLOR_RUN;
+    // Set color to green
+    *p++ = PICO_SCANVIDEO_PIXEL_FROM_RGB5(0, 0x1f, 0);
+    *p++ = width - 3;
+
+    *p++ = COMPOSABLE_COLOR_RUN;
+    // Set color to blue
+    *p++ = PICO_SCANVIDEO_PIXEL_FROM_RGB5(0,0,0x1f);
+    *p++ = width - 3;
 
     // 32 * 3, so we should be word aligned
     assert(!(3u & (uintptr_t) p));
 
-    // black pixel to end line
+    // Black pixel to end line (required to prevent color from bleeding into blanking)
     *p++ = COMPOSABLE_RAW_1P;
     *p++ = 0;
-    // end of line with alignment padding
-    *p++ = COMPOSABLE_EOL_SKIP_ALIGN;
+    // End of line with alignment padding
+    // Use COMPOSABLE_EOL_ALIGN if number of tokens used is odd, COMPOSABLE_EOL_SKIP_ALIGH if even
+    *p++ = COMPOSABLE_EOL_ALIGN;
     *p++ = 0;
 
+    // Set number of words used and check if it exceeds buffer size
     buffer->data_used = ((uint32_t *) p) - buffer->data;
     assert(buffer->data_used < buffer->data_max);
 
+    // Set buffer status to be ready for use
     buffer->status = SCANLINE_OK;
 }
 
