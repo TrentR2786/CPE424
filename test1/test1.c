@@ -20,7 +20,29 @@
 static semaphore_t video_initted;
 
 void draw(scanvideo_scanline_buffer_t *buffer) {
-    // PIXEL DRAWING CODE GOES HERE
+    // Get pointer to buffer data
+    uint16_t *p = (uint16_t *) buffer->data;
+    // Set token (COMPOSABLE_COLOR_RUN = draw all pixels up to a certain length)
+    *p++ = COMPOSABLE_COLOR_RUN;
+    // Set color for word (red)
+    *p++ = PICO_SCANVIDEO_PIXEL_FROM_RGB5(0x1f,0,0);
+    // Set number of pixels to draw (subtract 3 from desired number)
+    *p++ = vga_mode.width - 3;
+
+    // 32 * 3, so we should be word aligned
+    assert(!(3u & (uintptr_t) p));
+
+    // black pixel to end line
+    *p++ = COMPOSABLE_RAW_1P;
+    *p++ = 0;
+    // end of line with alignment padding
+    *p++ = COMPOSABLE_EOL_SKIP_ALIGN;
+    *p++ = 0;
+
+    buffer->data_used = ((uint32_t *) p) - buffer->data;
+    assert(buffer->data_used < buffer->data_max);
+
+    buffer->status = SCANLINE_OK;
 }
 
 void core1_func() {
