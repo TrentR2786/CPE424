@@ -9,15 +9,67 @@
 
 // VGA mode struct defines video timing and size
 
-#define vga_mode vga_mode_640x480_60
-//#define vga_mode vga_mode_320x240_60
+//#define vga_mode vga_mode_640x480_60
+#define vga_mode vga_mode_320x240_60
 //#define vga_mode vga_mode_213x160_60
 //#define vga_mode vga_mode_160x120_60
 //#define vga_mode vga_mode_tft_800x480_50
 //#define vga_mode vga_mode_tft_400x240_50
 
+/*
+const scanvideo_timing_t vga_timing =
+        {
+                .clock_freq = 24000000,
+
+                
+                //.h_active = 640,
+                //.v_active = 480,
+                
+
+                .h_active = 640,
+                .v_active = 480,
+
+                .h_front_porch = 16,
+                .h_pulse = 64,
+                .h_total = 800,
+                .h_sync_polarity = 1,
+
+                .v_front_porch = 1,
+                .v_pulse = 2,
+                .v_total = 500,
+                .v_sync_polarity = 1,
+
+                .enable_clock = 0,
+                .clock_polarity = 0,
+
+                .enable_den = 0
+        };
+
+scanvideo_mode_t vga_mode =
+        {
+                .default_timing = &vga_timing,
+                .pio_program = &video_24mhz_composable,
+                .width = 640,
+                .height = 480,
+                .xscale = 1,
+                .yscale = 1,
+        };
+*/
+
 // Semaphore used to block code from proceeding unitl video is initialized
 static semaphore_t video_initted;
+
+// Functions to simplify code writing
+void color_run(uint16_t* data, uint8_t r, uint8_t g, uint8_t b, uint16_t length) {
+    data[0] = COMPOSABLE_COLOR_RUN;
+    data[1] = PICO_SCANVIDEO_PIXEL_FROM_RGB5(r, g, b);
+    data[2] = length - 3;
+}
+
+void black_pixel(uint16_t* data) {
+    data[0] = COMPOSABLE_RAW_1P;
+    data[1] = 0;
+}
 
 void draw(scanvideo_scanline_buffer_t *buffer) {
 
@@ -40,10 +92,17 @@ void draw(scanvideo_scanline_buffer_t *buffer) {
     *p++ = PICO_SCANVIDEO_PIXEL_FROM_RGB5(0, 0x1f, 0);
     *p++ = width - 3;
 
+    
+    color_run(p, 0, 0, 0x1f, width);
+    *p += 3;
+
+    /*
     *p++ = COMPOSABLE_COLOR_RUN;
     // Set color to blue
-    *p++ = PICO_SCANVIDEO_PIXEL_FROM_RGB5(0,0,0x1f);
+    *p++ = PICO_SCANVIDEO_PIXEL_FROM_RGB5(0, 0, 0x1f);
     *p++ = width - 3;
+    */
+
 
     // 32 * 3, so we should be word aligned
     assert(!(3u & (uintptr_t) p));
@@ -53,7 +112,7 @@ void draw(scanvideo_scanline_buffer_t *buffer) {
     *p++ = 0;
     // End of line with alignment padding
     // Use COMPOSABLE_EOL_ALIGN if number of tokens used is odd, COMPOSABLE_EOL_SKIP_ALIGH if even
-    *p++ = COMPOSABLE_EOL_ALIGN;
+    *p++ = COMPOSABLE_EOL_SKIP_ALIGN;
     *p++ = 0;
 
     // Set number of words used and check if it exceeds buffer size
