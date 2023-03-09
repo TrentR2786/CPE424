@@ -92,9 +92,12 @@ void draw(scanvideo_scanline_buffer_t *buffer) {
     *p++ = PICO_SCANVIDEO_PIXEL_FROM_RGB5(0, 0x1f, 0);
     *p++ = width - 3;
 
-    
+    // Set color to blue
     color_run(p, 0, 0, 0x1f, width);
-    *p += 3;
+    // Include this line after using color_run
+    *p++;
+    *p++;
+    *p++;
 
     /*
     *p++ = COMPOSABLE_COLOR_RUN;
