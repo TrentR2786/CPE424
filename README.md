@@ -26,15 +26,15 @@ quo by creating easily-accessible, low-level tools for video artists to interact
 
 Below are the instructions to build and flash the test programs onto the CircuitBentBaby device.
 
-*NOTE: These instructions are specifically for Linux operating systems. If your computer runs Windows or Mac, use a Linux virtual machine. A Unix shell program such as MSYS2 could also work, but this has not been tested as thouroughly.*
+*NOTE: These instructions are specifically for Linux operating systems. Windows and Mac have not been tested, so a Linux virtual machine can be used for computers running those operating systems. A Unix shell program such as MSYS2 may also work, but this has not been tested as thouroughly.*
 
 1. Install Git onto your system and clone this repository, as well as the repositories for [the Pico SDK](https://github.com/raspberrypi/pico-sdk) and [Pico Extras](https://github.com/raspberrypi/pico-extras).
 2. Set the environment variables for the paths to the Pico SDK and Pico Extras directories. This can be done by typing `nano .bashrc` into the terminal and adding the below lines anywhere in the file (terminal will have to be closed and reopened for the lines to take effect).
 ```
-export PICO_SDK_PATH=(Path to Pico SDK directory)
-export PICO_EXTRAS_PATH=(Path to Pico Extras directory)
+export PICO_SDK_PATH=(path to Pico SDK directory)
+export PICO_EXTRAS_PATH=(path to Pico Extras directory)
 ```
-3. Download the required programs for building the Pico programs.
+3. Download the required programs for building.
 ```
 sudo apt install cmake gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
 ```
