@@ -50,6 +50,8 @@ make (name of program)
 ```
 5. Open the build directory and locate the `.uf2` file. Plug the CircuitBentBaby device into the USB port (if the device already has a program flashed onto it, hold down the button on the Pico while plugging the device in, then release the button). Open the folder for the Pico, then drag and drop the `.uf2` file into it.
 
+To rebuild a program, delete the build directory (`rm -rf build`) and repeat steps 4 and 5.
+
 ## Links
 
 [Project Site](https://sites.google.com/stevens.edu/circuitbentbaby/home)
