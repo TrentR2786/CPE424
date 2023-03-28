@@ -39,22 +39,22 @@ void draw(scanvideo_scanline_buffer_t *buffer) {
 
     uint16_t *p = (uint16_t *) buffer->data;
 
-    // Have rectangle snap to other side when it touches right edge of screen
-    if(block_width - i <= 3) {
+    // Have rectangle snap to top when it touches bottom of screen
+    if(i >= height/3) {
         i *= -1;
     }
     
-    color_run(p, 0x1f, 0, 0, block_width+i);
+    color_run(p, 0x1f, 0, 0, block_width);
     p += 3;
 
-    if(line_num >= height/3 && line_num <= 2*height/3) {
+    if(line_num >= (height/3) + i && line_num <= (2*height/3) + i) {
         color_run(p, 0, 0, 0x1f, block_width);
     } else {
         color_run(p, 0x1f, 0, 0, block_width);
     }
     p += 3;
 
-    color_run(p, 0x1f, 0, 0, block_width-i);
+    color_run(p, 0x1f, 0, 0, block_width);
     p += 3;
 
     // 32 * 3, so we should be word aligned

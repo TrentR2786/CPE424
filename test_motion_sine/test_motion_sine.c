@@ -30,32 +30,52 @@ void color_run(uint16_t* data, uint8_t r, uint8_t g, uint8_t b, uint16_t length)
     data[2] = length - 3;
 }
 
+// Version of color_run function that draws one horizontal block
+void draw_block(uint16_t* data, uint8_t r, uint8_t g, uint8_t b) {
+    data[0] = COMPOSABLE_COLOR_RUN;
+    data[1] = PICO_SCANVIDEO_PIXEL_FROM_RGB5(r, g, b);
+    data[2] = 1;
+}
+
 void draw(scanvideo_scanline_buffer_t *buffer) {
 
-    uint16_t block_width = vga_mode.width / 3;
+    uint16_t w_blocks = vga_mode.width/4;
     uint16_t height = vga_mode.height;
 
-    uint16_t line_num = scanvideo_scanline_number(buffer->scanline_id);
+    uint16_t y = scanvideo_scanline_number(buffer->scanline_id);
 
     uint16_t *p = (uint16_t *) buffer->data;
 
-    // Have rectangle snap to other side when it touches right edge of screen
-    if(block_width - i <= 3) {
+    /*
+    uint8_t red = 0;
+    for(int x = 0; x < w_blocks; x++) {
+        color_run(p, red, 0, 0, 4);
+        p += 3;
+        if(x % (width/128) == 0) {
+            red++;
+        } 
+    }
+    */
+
+    // Have rectangle snap to top when it touches bottom of screen
+    if(i >= height/3) {
         i *= -1;
     }
-    
-    color_run(p, 0x1f, 0, 0, block_width+i);
-    p += 3;
 
-    if(line_num >= height/3 && line_num <= 2*height/3) {
-        color_run(p, 0, 0, 0x1f, block_width);
-    } else {
-        color_run(p, 0x1f, 0, 0, block_width);
-    }
-    p += 3;
+   for(int x = 0; x < w_blocks; x++) {
+        if(x >= w_blocks/3 && x <= 2*w_blocks/3) {
 
-    color_run(p, 0x1f, 0, 0, block_width-i);
-    p += 3;
+            if(y >= (height/3) + i && y <= (2*height/3) + i) {
+                draw_block(p, 0, 0, 0x1f);
+            } else {
+                draw_block(p, 0x1f, 0, 0);
+            }
+            
+        } else {
+            draw_block(p, 0x1f, 0, 0);
+        }
+        p += 3;
+   }
 
     // 32 * 3, so we should be word aligned
     assert(!(3u & (uintptr_t) p));
