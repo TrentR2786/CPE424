@@ -6,6 +6,7 @@
 #include "pico/scanvideo.h"
 #include "pico/scanvideo/composable_scanline.h"
 #include "pico/sync.h"
+#include <math.h>
 
 // VGA mode struct defines video timing and size
 
@@ -39,24 +40,24 @@ void draw_block(uint16_t* data, uint8_t r, uint8_t g, uint8_t b) {
 
 void draw(scanvideo_scanline_buffer_t *buffer) {
 
-    uint16_t w_blocks = vga_mode.width/4;
+    uint16_t width = vga_mode.width;
+    uint16_t w_blocks = width/4;
     uint16_t height = vga_mode.height;
 
     uint16_t y = scanvideo_scanline_number(buffer->scanline_id);
 
     uint16_t *p = (uint16_t *) buffer->data;
 
-    /*
-    uint8_t red = 0;
-    for(int x = 0; x < w_blocks; x++) {
-        color_run(p, red, 0, 0, 4);
-        p += 3;
-        if(x % (width/128) == 0) {
-            red++;
-        } 
-    }
-    */
 
+    for(int x = 0; x < w_blocks; x++) {
+        double z = fabs(cos(2*(double)y * M_PI / 180));
+        uint8_t r = round(0x1f * z);
+        draw_block(p, r, 0, 0);
+        p += 3;   
+    }
+
+
+   /*
     // Have rectangle snap to top when it touches bottom of screen
     if(i >= height/3) {
         i *= -1;
@@ -76,6 +77,7 @@ void draw(scanvideo_scanline_buffer_t *buffer) {
         }
         p += 3;
    }
+   */
 
     // 32 * 3, so we should be word aligned
     assert(!(3u & (uintptr_t) p));
