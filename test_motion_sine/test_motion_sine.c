@@ -50,34 +50,13 @@ void draw(scanvideo_scanline_buffer_t *buffer) {
 
 
     for(int x = 0; x < w_blocks; x++) {
-        double z = fabs(cos(2*(double)y * M_PI / 180));
-        uint8_t r = round(0x1f * z);
-        draw_block(p, r, 0, 0);
+        double rf = fabs(cos(2*(double)(y+i) * M_PI / 180));
+        double bf = fabs(cos(2*(double)(y-i) * M_PI / 180));
+        uint8_t r = round(0x1f * rf);
+        uint8_t b = round(0x1f * bf);
+        draw_block(p, r, 0, b);
         p += 3;   
     }
-
-
-   /*
-    // Have rectangle snap to top when it touches bottom of screen
-    if(i >= height/3) {
-        i *= -1;
-    }
-
-   for(int x = 0; x < w_blocks; x++) {
-        if(x >= w_blocks/3 && x <= 2*w_blocks/3) {
-
-            if(y >= (height/3) + i && y <= (2*height/3) + i) {
-                draw_block(p, 0, 0, 0x1f);
-            } else {
-                draw_block(p, 0x1f, 0, 0);
-            }
-            
-        } else {
-            draw_block(p, 0x1f, 0, 0);
-        }
-        p += 3;
-   }
-   */
 
     // 32 * 3, so we should be word aligned
     assert(!(3u & (uintptr_t) p));
