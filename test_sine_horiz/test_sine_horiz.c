@@ -49,9 +49,11 @@ void draw(scanvideo_scanline_buffer_t *buffer) {
     uint16_t *p = (uint16_t *) buffer->data;
 
     for(uint16_t x = 0; x < w_blocks; x++) {
-        double rf = fabs(cos(4*(double)(x) * M_PI / 180));
-        uint8_t r = round(0x1f * rf);
-        draw_block(p, r, 0, 0);
+        if((x+i) % 2 == 0) {
+            draw_block(p, 0x1f, 0, 0);
+        } else {
+            draw_block(p, 0x10, 0, 0);
+        }
         p += 3;   
     }
 

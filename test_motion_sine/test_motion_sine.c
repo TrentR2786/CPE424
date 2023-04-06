@@ -24,6 +24,10 @@ static semaphore_t video_initted;
 // Offset value
 static int16_t i = 0;
 
+// Values to control speed
+uint8_t i_frame = 1; // Number of frames until offset updates
+uint8_t i_inc = 2; // Amount by which offset increases
+
 // Functions to simplify code writing
 void color_run(uint16_t* data, uint8_t r, uint8_t g, uint8_t b, uint16_t length) {
     data[0] = COMPOSABLE_COLOR_RUN;
@@ -86,6 +90,7 @@ void core1_func() {
     sem_release(&video_initted);
 
     static uint32_t last_frame_num = 0;
+    static uint8_t frame_count = 0;
 
     while (true) {
         // Generate scanline buffer
@@ -95,7 +100,12 @@ void core1_func() {
         uint32_t frame_num = scanvideo_frame_number(scanline_buffer->scanline_id);
         if(frame_num != last_frame_num) {
             last_frame_num = frame_num;
-            i++;
+            frame_count++;
+
+            if(frame_count % i_frame == 0) {
+                 i += i_inc;
+                 frame_count = 0;
+            }
         }
 
         // Draw pixels to buffer
