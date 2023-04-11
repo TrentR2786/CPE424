@@ -21,6 +21,9 @@
 // Semaphore used to block code from proceeding unitl video is initialized
 static semaphore_t video_initted;
 
+// Set block size in pixels
+uint8_t block_size = 64;
+
 // Offset value
 static int16_t i = 0;
 
@@ -42,6 +45,17 @@ void draw_block(uint16_t* data, uint8_t r, uint8_t g, uint8_t b) {
     data[2] = 1;
 }
 
+void draw_pixel(uint16_t* data, uint8_t r, uint8_t g, uint8_t b) {
+    data[0] = COMPOSABLE_RAW_1P;
+    data[1] = PICO_SCANVIDEO_PIXEL_FROM_RGB5(r, g, b);
+}
+
+// Function to determine if square should be black
+bool blackSquare(int x, int y) {
+    return (y % (2*block_size) < block_size && x % (block_size / 2) < (block_size/4)) || (y % (2*block_size) >= block_size && x % (block_size / 2) >= (block_size/4));
+}
+
+
 void draw(scanvideo_scanline_buffer_t *buffer) {
 
     uint16_t width = vga_mode.width;
@@ -52,16 +66,13 @@ void draw(scanvideo_scanline_buffer_t *buffer) {
 
     uint16_t *p = (uint16_t *) buffer->data;
 
-
     for(int x = 0; x < w_blocks; x++) {
-        double rf = fabs(cos(2*(double)(y+i) * M_PI / 180));
-        //double gf = fabs(cos(2*(double)(y+(0.5*i)) * M_PI / 180));
-        double bf = fabs(cos(2*(double)(y-i) * M_PI / 180));
-        uint8_t r = round(0x1f * rf);
-        //uint8_t g = round(0x1f * gf);
-        uint8_t b = round(0x1f * bf);
-        draw_block(p, r, 0, b);
-        p += 3;   
+        if(blackSquare(x, y)) {
+            draw_block(p, 0, 0, 0);
+        } else {
+            draw_block(p, 0x1f, 0x1f, 0x1f);
+        }
+        p += 3;
     }
 
     // 32 * 3, so we should be word aligned
