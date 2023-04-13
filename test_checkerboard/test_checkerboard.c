@@ -7,6 +7,7 @@
 #include "pico/scanvideo/composable_scanline.h"
 #include "pico/sync.h"
 #include <math.h>
+#include "hardware/adc.h"
 
 // VGA mode struct defines video timing and size
 
@@ -20,9 +21,6 @@
 
 // Semaphore used to block code from proceeding unitl video is initialized
 static semaphore_t video_initted;
-
-// Set block size in pixels
-uint8_t block_size = 64;
 
 // Offset value
 static int16_t i = 0;
@@ -45,13 +43,29 @@ void draw_block(uint16_t* data, uint8_t r, uint8_t g, uint8_t b) {
     data[2] = 1;
 }
 
-void draw_pixel(uint16_t* data, uint8_t r, uint8_t g, uint8_t b) {
-    data[0] = COMPOSABLE_RAW_1P;
-    data[1] = PICO_SCANVIDEO_PIXEL_FROM_RGB5(r, g, b);
+// Function to set block size based on potentiometer input
+uint16_t setBlockSize() {
+    uint16_t pot_raw = adc_read();
+    uint8_t pot = round(5 * (float)pot_raw / (1 << 12));
+
+    switch(pot) {
+        case 1: 
+            return 64;
+        case 2: 
+            return 32;
+        case 3: 
+            return 16;
+        case 4: 
+            return 8;
+        case 5: 
+            return 4;
+        default: // Input = 0 
+            return 128;
+    }
 }
 
 // Function to determine if square should be black
-bool blackSquare(int x, int y) {
+bool blackSquare(uint16_t x, uint16_t y, uint16_t block_size) {
     return (y % (2*block_size) < block_size && x % (block_size / 2) < (block_size/4)) || (y % (2*block_size) >= block_size && x % (block_size / 2) >= (block_size/4));
 }
 
@@ -66,8 +80,10 @@ void draw(scanvideo_scanline_buffer_t *buffer) {
 
     uint16_t *p = (uint16_t *) buffer->data;
 
+    uint16_t block_size = setBlockSize();
+
     for(int x = 0; x < w_blocks; x++) {
-        if(blackSquare(x, y)) {
+        if(blackSquare(x, y, block_size)) {
             draw_block(p, 0, 0, 0);
         } else {
             draw_block(p, 0x1f, 0x1f, 0x1f);
@@ -131,6 +147,10 @@ void core1_func() {
 int main(void) {
     // Initialize semaphore
     sem_init(&video_initted, 0, 1);
+    // Initialize ADC for potentiometer
+    adc_init();
+    adc_gpio_init(26);
+    adc_select_input(0);
     // Run code on core 1
     multicore_launch_core1(core1_func);
     // Wait for video initialization to complete

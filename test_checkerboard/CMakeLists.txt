@@ -16,7 +16,7 @@ add_executable(test_checkerboard
 )
 
 # Add pico_stdlib library which aggregates commonly used features
-target_link_libraries(test_checkerboard pico_multicore pico_stdlib pico_scanvideo_dpi)
+target_link_libraries(test_checkerboard pico_multicore pico_stdlib pico_scanvideo_dpi hardware_adc)
 
 # create map/bin/hex/uf2 file in addition to ELF.
 pico_add_extra_outputs(test_checkerboard)

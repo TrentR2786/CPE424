@@ -7,6 +7,7 @@
 #include "pico/scanvideo/composable_scanline.h"
 #include "pico/sync.h"
 #include <math.h>
+#include "hardware/adc.h"
 
 // VGA mode struct defines video timing and size
 
@@ -25,8 +26,8 @@ static semaphore_t video_initted;
 static int16_t i = 0;
 
 // Values to control speed
-uint8_t i_frame = 1; // Number of frames until offset updates
-uint8_t i_inc = 2; // Amount by which offset increases
+static uint8_t i_frame; // Number of frames until offset updates
+static uint8_t i_inc; // Amount by which offset increases
 
 // Functions to simplify code writing
 void color_run(uint16_t* data, uint8_t r, uint8_t g, uint8_t b, uint16_t length) {
@@ -40,6 +41,35 @@ void draw_block(uint16_t* data, uint8_t r, uint8_t g, uint8_t b) {
     data[0] = COMPOSABLE_COLOR_RUN;
     data[1] = PICO_SCANVIDEO_PIXEL_FROM_RGB5(r, g, b);
     data[2] = 1;
+}
+
+// Function to update speed based on potentiometer input
+void updateSpeed() {
+    uint16_t pot_raw = adc_read();
+    uint8_t pot = round(4 * (float)pot_raw / (1 << 12));
+
+    switch(pot) {
+        case 1: 
+            // 1.5x speed 
+            i_frame = 2;
+            i_inc = 3;
+        case 2: 
+            // 1x speed 
+            i_frame = 1;
+            i_inc = 1;
+        case 3: 
+            // 0.5x speed 
+            i_frame = 2;
+            i_inc = 1;
+        case 4: 
+            // 0.25x speed 
+            i_frame = 4;
+            i_inc = 1;
+        default: // Input = 0
+            // 2x speed 
+            i_frame = 1;
+            i_inc = 2;
+    }
 }
 
 void draw(scanvideo_scanline_buffer_t *buffer) {
@@ -98,6 +128,9 @@ void core1_func() {
         // Generate scanline buffer
         scanvideo_scanline_buffer_t *scanline_buffer = scanvideo_begin_scanline_generation(true);
 
+        // Update speed based on potentiometer input
+        updateSpeed();
+
         // Update offset every new frame
         uint32_t frame_num = scanvideo_frame_number(scanline_buffer->scanline_id);
         if(frame_num != last_frame_num) {
@@ -120,6 +153,10 @@ void core1_func() {
 int main(void) {
     // Initialize semaphore
     sem_init(&video_initted, 0, 1);
+    // Initialize ADC for potentiometer
+    adc_init();
+    adc_gpio_init(26);
+    adc_select_input(0);
     // Run code on core 1
     multicore_launch_core1(core1_func);
     // Wait for video initialization to complete
