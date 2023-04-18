@@ -144,10 +144,10 @@ void draw_sine(scanvideo_scanline_buffer_t *buffer) {
 
     for(int x = 0; x < w_blocks; x++) {
         double rf = fabs(cos(2*(double)(y+i) * M_PI / 180));
-        double bf = fabs(cos(2*(double)(y-i) * M_PI / 180));
+        double gf = fabs(cos(2*(double)(y-i) * M_PI / 180));
         uint8_t r = round(0x1f * rf);
-        uint8_t b = round(0x1f * bf);
-        draw_block(p, r, 0, b);
+        uint8_t g = round(0x1f * gf);
+        draw_block(p, r, g, 0x1f);
         p += 3;   
     }
 
@@ -181,6 +181,8 @@ void core1_func() {
 
     static uint32_t last_frame_num = 0;
     static uint8_t frame_count = 0;
+    static uint16_t toggle_count = 0;
+    static bool drawSine = false;
 
     while (true) {
         // Generate scanline buffer
@@ -191,6 +193,14 @@ void core1_func() {
         if(frame_num != last_frame_num) {
             last_frame_num = frame_num;
             frame_count++;
+            toggle_count++;
+
+            // Toggle demo every 900 frames (15 seconds)
+            if(toggle_count >= 900) {
+                drawSine = !drawSine;
+                toggle_count = 0;
+            }
+        
 
             if(frame_count % i_frame == 0) {
                  i += i_inc;
@@ -199,7 +209,11 @@ void core1_func() {
         }
 
         // Draw pixels to buffer
-        draw_sine(scanline_buffer);
+        if(drawSine) {
+            draw_sine(scanline_buffer);
+        } else {
+            draw_checkerboard(scanline_buffer);
+        }
         // Pass buffer to scanvideo code
         scanvideo_end_scanline_generation(scanline_buffer);
     }
