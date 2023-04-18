@@ -11,12 +11,12 @@ project(my_project)
 pico_sdk_init()
 
 # rest of your project
-add_executable(test_checkerboard
-    test_checkerboard.c
+add_executable(expo_demo
+    expo_demo.c
 )
 
 # Add pico_stdlib library which aggregates commonly used features
-target_link_libraries(test_checkerboard pico_multicore pico_stdlib pico_scanvideo_dpi hardware_adc)
+target_link_libraries(expo_demo pico_multicore pico_stdlib pico_scanvideo_dpi hardware_adc)
 
 # create map/bin/hex/uf2 file in addition to ELF.
-pico_add_extra_outputs(test_checkerboard)
+pico_add_extra_outputs(expo_demo)
