@@ -10,22 +10,15 @@
 // VGA mode struct defines video timing and size
 
 //#define vga_mode vga_mode_640x480_60
-#define vga_mode vga_mode_320x240_60
+//#define vga_mode vga_mode_320x240_60
 //#define vga_mode vga_mode_213x160_60
-//#define vga_mode vga_mode_160x120_60
+#define vga_mode vga_mode_160x120_60
 //#define vga_mode vga_mode_tft_800x480_50
 //#define vga_mode vga_mode_tft_400x240_50
 
 
 // Semaphore used to block code from proceeding unitl video is initialized
 static semaphore_t video_initted;
-
-// Offset value for sinusoidal demo
-static int16_t i = 0;
-
-// Values to control speed of sinusoidal demo
-static uint8_t i_frame = 1; // Number of frames until offset updates
-static uint8_t i_inc = 2; // Amount by which offset increases
 
 // Draw one horizontal block (must increment data pointer by 3 after calling)
 void draw_block(uint16_t* data, uint8_t r, uint8_t g, uint8_t b) {
@@ -34,8 +27,12 @@ void draw_block(uint16_t* data, uint8_t r, uint8_t g, uint8_t b) {
     data[2] = 1;
 }
 
+// Offset value for sinusoidal demo
+static uint16_t i = 0;
+
 // Set block size for checkerboard demo based on potentiometer input
 uint16_t setBlockSize() {
+    adc_select_input(0);
     uint16_t pot_raw = adc_read();
     uint8_t pot = round(5 * (float)pot_raw / (1 << 12));
 
@@ -101,38 +98,56 @@ void draw_checkerboard(scanvideo_scanline_buffer_t *buffer) {
     buffer->status = SCANLINE_OK;
 }
 
-// Function to update speed of sinusoidal demo based on potentiometer input
-void updateSpeed() {
+// Functions to update speed of sinusoidal demo based on potentiometer input
+uint8_t speedFrame() {
+    adc_select_input(0);
     uint16_t pot_raw = adc_read();
     uint8_t pot = round(4 * (float)pot_raw / (1 << 12));
 
     switch(pot) {
         case 1: 
             // 1.5x speed 
-            i_frame = 2;
-            i_inc = 3;
+            return 2;
         case 2: 
             // 1x speed 
-            i_frame = 1;
-            i_inc = 1;
+            return 1;
         case 3: 
             // 0.5x speed 
-            i_frame = 2;
-            i_inc = 1;
+            return 2;
         case 4: 
             // 0.25x speed 
-            i_frame = 4;
-            i_inc = 1;
+            return 4;
         default: // Input = 0
             // 2x speed 
-            i_frame = 1;
-            i_inc = 2;
+            return 1;
+    }
+}
+
+uint8_t speedInc() {
+    adc_select_input(0);
+    uint16_t pot_raw = adc_read();
+    uint8_t pot = round(4 * (float)pot_raw / (1 << 12));
+
+    switch(pot) {
+        case 1: 
+            // 1.5x speed 
+            return 3;
+        case 2: 
+            // 1x speed 
+            return 1;
+        case 3: 
+            // 0.5x speed 
+            return 1;
+        case 4: 
+            // 0.25x speed 
+            return 1;
+        default: // Input = 0
+            // 2x speed 
+            return 2;
     }
 }
 
 void draw_sine(scanvideo_scanline_buffer_t *buffer) {
-
-    updateSpeed();
 
     uint16_t width = vga_mode.width;
     uint16_t w_blocks = width/4;
@@ -179,12 +194,19 @@ void core1_func() {
     // Release semaphore
     sem_release(&video_initted);
 
+    // Values to control frame updates/toggling demos
     static uint32_t last_frame_num = 0;
     static uint8_t frame_count = 0;
-    static uint16_t toggle_count = 0;
-    static bool drawSine = false;
+    //static uint16_t toggle_count = 0;
+    //static bool drawSine = false;
 
     while (true) {
+
+        // Values to control speed of sinusoidal demo
+        // Speed factor = i_inc/i_frame
+        uint8_t i_inc = speedInc(); // Amount by which offset increases
+        uint8_t i_frame = speedFrame(); // Number of frames until offset updates
+
         // Generate scanline buffer
         scanvideo_scanline_buffer_t *scanline_buffer = scanvideo_begin_scanline_generation(true);
 
@@ -193,23 +215,33 @@ void core1_func() {
         if(frame_num != last_frame_num) {
             last_frame_num = frame_num;
             frame_count++;
-            toggle_count++;
+            //toggle_count++;
 
+            /*
             // Toggle demo every 900 frames (15 seconds)
             if(toggle_count >= 900) {
                 drawSine = !drawSine;
                 toggle_count = 0;
             }
+            */
         
-
             if(frame_count % i_frame == 0) {
                  i += i_inc;
                  frame_count = 0;
             }
+
+            if(i >= 10000) {
+                i = 0;
+            }
         }
 
+        // Select demo based on potentiometer input
+        adc_select_input(1);
+        uint16_t pot_raw = adc_read();
+        uint8_t pot = round((float)pot_raw / (1 << 12));
+    
         // Draw pixels to buffer
-        if(drawSine) {
+        if(pot == 1) {
             draw_sine(scanline_buffer);
         } else {
             draw_checkerboard(scanline_buffer);
@@ -225,7 +257,7 @@ int main(void) {
     // Initialize ADC for potentiometer
     adc_init();
     adc_gpio_init(26);
-    adc_select_input(0);
+    adc_gpio_init(27);
     // Run code on core 1
     multicore_launch_core1(core1_func);
     // Wait for video initialization to complete
